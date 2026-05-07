@@ -86,7 +86,6 @@ for i = 0, 63 do
 	if (true and i < weapon_recoil_suppression_shots) then
 		local fSuppresionFactor = math.lerp(weapon_recoil_suppression_factor, 1, i / weapon_recoil_suppression_shots)
 		fMagnitude *= fSuppresionFactor
-		fAngle *= -1 --this line isn't in the original source but it fixes the thing being off horizontally on the first couple bullets
 	end
 	
 	recoilTable[i] = {
@@ -154,8 +153,8 @@ RunService.Stepped:Connect(function(t, dt)
 		if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
 			if cycleTime < 0 then
 				cycleTime = cycleTimeReset
-				recoilIndex += 1
 				Kickback(recoilTable[recoilIndex % 64].fAngle, recoilTable[recoilIndex % 64].fMagnitude)
+				recoilIndex+=1
 				local punch = aimPunchAngle / 10
 				local rY, rP = math.rad(YAW) - punch.Y, math.rad(PITCH) - punch.Z
 				local cy, sy, cp, sp = math.cos(rY), math.sin(rY), math.cos(rP), math.sin(rP)
@@ -167,11 +166,12 @@ RunService.Stepped:Connect(function(t, dt)
 				local rc = workspace:Raycast(p1, p2 * 512, rp)
 				if rc then
 					local p = Instance.new("Part")
-					p.Size = Vector3.new(.5, .5, .5)
-					p.Position = rc.Position
-					p.Color	= Color3.new(1, 0, 0)
-					p.Transparency = .5
+					p.Size = Vector3.new(0.001, .3, .3)
+					p.CFrame = CFrame.new(rc.Position) * CFrame.Angles(0, math.rad(90), 0)
+					p.Color	= Color3.new(1, 0.5 - math.min(recoilIndex, 30) / 60, 0)
+					p.Transparency = 0
 					p.Anchored = true
+					p.Shape = Enum.PartType.Cylinder
 					p.Parent = workspace
 					p:AddTag("ToBeRemoved")
 				end
