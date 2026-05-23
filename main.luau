@@ -187,6 +187,9 @@ RunService.Stepped:Connect(function(t, dt)
 			if cycleTime < 0 then
 				ammoLeft -= 1
 				cycleTime = cycleTimeReset
+				if ammoLeft == 0 then
+					cycleTime = 0.5
+				end
 				Kickback(recoilTable[math.floor(recoilIndex) % 64].fAngle, recoilTable[math.floor(recoilIndex) % 64].fMagnitude)
 				recoilIndex+=1
 				local punch = aimPunchAngle / 20

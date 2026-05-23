@@ -184,6 +184,7 @@ RunService.Stepped.Connect((t, dt) => {
 			if (cycleTime < 0) {
 				ammoLeft -= 1;
 				cycleTime = cycleTimeReset;
+				if (ammoLeft == 0) cycleTime = 0.5
 				const idx = math.floor(recoilIndex) % 64;
 				Kickback(recoilTable[idx].fAngle, recoilTable[idx].fMagnitude);
 				recoilIndex++;
