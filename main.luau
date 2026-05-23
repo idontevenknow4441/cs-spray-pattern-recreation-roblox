@@ -93,6 +93,8 @@ local weapon_recoil_decay2_lin = 18
 local weapon_recoil_scale = .5 --this is 2 in CSGO but i have no idea why it's so strong with it actually set to 2 here
 
 function Gen()
+	fAngle = 0
+	fMagnitude = 0
 for i = 0, 63 do
 	local fAngleNew = recoilAngle + CUniformRandomStream_RandomFloat(recoilRandom, -recoilAngleVariance, recoilAngleVariance)
 	local fMagnitudeNew = recoilMagnitude + CUniformRandomStream_RandomFloat(recoilRandom, -recoilMagnitudeVariance, recoilMagnitudeVariance)
@@ -256,7 +258,6 @@ game.Players.LocalPlayer.PlayerGui.ScreenGui:WaitForChild("TextBox").FocusLost:C
 			ent.cycle,
 			oldText
 		})
-		Gen()
 	else
 		game.Players.LocalPlayer.PlayerGui.ScreenGui.TextBox.PlaceholderText = "(load failed as no such weapon was found)"
 	end

@@ -92,6 +92,8 @@ const weapon_recoil_decay2_lin = 18;
 const weapon_recoil_scale = 0.5;
 
 function Gen() {
+	fAngle = 0;
+	fMagnitude = 0;
 	for (let i = 0; i < 64; i++) {
 		const fAngleNew = recoilAngle + CUniformRandomStream_RandomFloat(recoilRandom, -recoilAngleVariance, recoilAngleVariance);
 		const fMagnitudeNew = recoilMagnitude + CUniformRandomStream_RandomFloat(recoilRandom, -recoilMagnitudeVariance, recoilMagnitudeVariance);
@@ -262,7 +264,6 @@ pgui.ScreenGui.TextBox.FocusLost.Connect(() => {
 			ent.cycle,
 			oldText,
 		]);
-		Gen();
 	} else {
 		pgui.ScreenGui.TextBox.PlaceholderText = "(load failed as no such weapon was found)";
 	}
