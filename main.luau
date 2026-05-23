@@ -1,3 +1,4 @@
+repeat task.wait() until game.Players.LocalPlayer.PlayerGui:FindFirstChild("ScreenGui")
 local IA = 16807
 local IM = 2147483647
 local IQ = 127773
@@ -54,8 +55,27 @@ local recoilAngle = 0
 local recoilAngleVariance = 70
 local recoilMagnitude = 30
 local recoilMagnitudeVariance = 0
+local recTime = 0.8
+local pAmmo = 30
+local ammoLeft = pAmmo
+local id = "weapon_ak47"
 
 local cycleTimeReset = 0.1 --from item schema
+
+function _G.LoadFromObject(obj)
+	recoilRandom = CUniformRandomStream(obj[1])
+	recoilAngle = obj[2]
+	recoilAngleVariance = obj[3]
+	recoilMagnitude = obj[4]
+	recoilMagnitudeVariance = obj[5]
+	recTime = obj[6]
+	pAmmo = obj[7]
+	ammoLeft = pAmmo
+	cycleTimeReset = obj[8]
+	id = obj[9]
+	Gen()
+end
+
 local cycleTime = cycleTimeReset
 
 local tickrate = 1 / 64 --bad way. sure
@@ -66,12 +86,13 @@ local fAngle, fMagnitude = 0, 0
 local weapon_recoil_variance = 0.55 --from a CVar under the same name
 local weapon_recoil_suppression_shots = 4
 local weapon_recoil_suppression_factor = 0.75
-local weapon_recoil_view_punch_extra = 0.55
+local weapon_recoil_view_punch_extra = 0.3
 local weapon_recoil_vel_decay = 4.5
 local weapon_recoil_decay2_exp = 8
 local weapon_recoil_decay2_lin = 18
 local weapon_recoil_scale = .5 --this is 2 in CSGO but i have no idea why it's so strong with it actually set to 2 here
 
+function Gen()
 for i = 0, 63 do
 	local fAngleNew = recoilAngle + CUniformRandomStream_RandomFloat(recoilRandom, -recoilAngleVariance, recoilAngleVariance)
 	local fMagnitudeNew = recoilMagnitude + CUniformRandomStream_RandomFloat(recoilRandom, -recoilMagnitudeVariance, recoilMagnitudeVariance)
@@ -93,6 +114,8 @@ for i = 0, 63 do
 		fMagnitude = fMagnitude
 	}
 end
+end
+Gen()
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local accumTime = 0
@@ -145,6 +168,14 @@ function GetAimPunch()
 end
 local YAW, PITCH = 0, 0
 
+local default_bulletholes = {
+	"4117124202";
+	"4117124881";
+	"4117125609";
+	"4117126706";
+	"4117127411";
+}
+
 RunService.Stepped:Connect(function(t, dt)
 	accumTime += dt
 	while (accumTime > tickrate) do
@@ -152,10 +183,11 @@ RunService.Stepped:Connect(function(t, dt)
 		cycleTime -= tickrate
 		if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
 			if cycleTime < 0 then
+				ammoLeft -= 1
 				cycleTime = cycleTimeReset
-				Kickback(recoilTable[recoilIndex % 64].fAngle, recoilTable[recoilIndex % 64].fMagnitude)
+				Kickback(recoilTable[math.floor(recoilIndex) % 64].fAngle, recoilTable[math.floor(recoilIndex) % 64].fMagnitude)
 				recoilIndex+=1
-				local punch = aimPunchAngle / 10
+				local punch = aimPunchAngle / 20
 				local rY, rP = math.rad(YAW) - punch.Y, math.rad(PITCH) - punch.Z
 				local cy, sy, cp, sp = math.cos(rY), math.sin(rY), math.cos(rP), math.sin(rP)
 				local p1 = game.Players.LocalPlayer.Character:GetPivot().Position + Vector3.new(0, 2)
@@ -166,34 +198,70 @@ RunService.Stepped:Connect(function(t, dt)
 				local rc = workspace:Raycast(p1, p2 * 512, rp)
 				if rc then
 					local p = Instance.new("Part")
-					p.Size = Vector3.new(0.001, .3, .3)
-					p.CFrame = CFrame.new(rc.Position) * CFrame.Angles(0, math.rad(90), 0)
+					p.Size = Vector3.new(0.6, .6, .6)
+					p.CFrame = CFrame.lookAt(rc.Position, rc.Position + rc.Normal)
 					p.Color	= Color3.new(1, 0.5 - math.min(recoilIndex, 30) / 60, 0)
-					p.Transparency = 0
+					p.Transparency = 1
 					p.Anchored = true
-					p.Shape = Enum.PartType.Cylinder
+					p.Shape = Enum.PartType.Block
 					p.Parent = workspace
+					local dec = Instance.new("Decal")
+					dec.Texture = "rbxassetid://" .. default_bulletholes[math.random(#default_bulletholes)]
+					dec.Parent = p
+					dec.Face = Enum.NormalId.Front
+
 					p:AddTag("ToBeRemoved")
 				end
 			end
+		else
+			local k = math.log(pAmmo) / recTime
+			recoilIndex = math.max(recoilIndex * math.exp(-k * tickrate), 0) --i'm pretty sure this isn't the actual decay but it seems fine enough
 		end
+		game.Players.LocalPlayer.PlayerGui.ScreenGui.TextLabel.Text = string.format("Recoil index: %.2f (R to reset)", recoilIndex)
+		game.Players.LocalPlayer.PlayerGui.ScreenGui.tl2.Text = string.format("Ammo: %d/%d, weapon: %s", ammoLeft, pAmmo, id)
 		ViewPunchDecay()
 	end
 end)
 
 local locked = true
-UserInputService.InputBegan:Connect(function(i)
+UserInputService.InputBegan:Connect(function(i, gpe)
+	if gpe then return end
 	if i.KeyCode == Enum.KeyCode.E then
 		locked = not locked
 	end
 	if i.KeyCode == Enum.KeyCode.R then
 		recoilIndex = 0
+		ammoLeft = pAmmo
 		for i, v in pairs(game:GetService("CollectionService"):GetTagged("ToBeRemoved")) do
 			v:Destroy()
 		end
 	end
+	if i.KeyCode == Enum.KeyCode.P then
+		game.Players.LocalPlayer.PlayerGui.ScreenGui.TextBox:CaptureFocus()
+	end
 end)
-
+local weps = require(game.ReplicatedStorage:WaitForChild("weaponList"))
+game.Players.LocalPlayer.PlayerGui.ScreenGui:WaitForChild("TextBox").FocusLost:Connect(function()
+	local oldText = game.Players.LocalPlayer.PlayerGui.ScreenGui.TextBox.Text
+	local ent = weps[oldText]
+	if ent then
+		_G.LoadFromObject({
+			ent.seed,
+			ent.recoilAng,
+			ent.recoilAngVar,
+			ent.recoilMagn,
+			ent.recoilMagnVar,
+			ent.tIdle,
+			ent.primAmmo,
+			ent.cycle,
+			oldText
+		})
+		Gen()
+	else
+		game.Players.LocalPlayer.PlayerGui.ScreenGui.TextBox.PlaceholderText = "(load failed as no such weapon was found)"
+	end
+	game.Players.LocalPlayer.PlayerGui.ScreenGui.TextBox.Text = ""
+end)
 RunService.RenderStepped:Connect(function(dt)
 	if not game.Players.LocalPlayer.Character then return end
 	UserInputService.MouseBehavior = locked and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
