@@ -1,5 +1,4 @@
 --Connected Discord-GitHub
---don't error if the ui didn't load yet
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CollectionService = game:GetService("CollectionService")
